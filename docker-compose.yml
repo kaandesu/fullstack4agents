@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: api
+    restart: unless-stopped
+    ports:
+      - "8313:8313"
+      - "8090:8090"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      PORT: "8313"
+      GIN_MODE: ${GIN_MODE:-debug}
+    volumes:
+      - pb_data:/app/pb_data
+
+volumes:
+  pb_data:
