@@ -12,19 +12,21 @@ Never manually import these — Nuxt auto-imports them:
 - Nuxt: `navigateTo`, `useRoute`, `useRouter`, `useFetch`, `definePageMeta`, `useColorMode`, `useRuntimeConfig`
 - VueUse: all composables from `@vueuse/core`
 - Components: everything under `app/components/` (including `ui/`)
-- Stores: all files under `app/stores/`
 - Utils: all files under `app/utils/`
 - Composables: all files under `app/composables/`
 
+**Exception: Always explicitly import Pinia stores** even though they're auto-imported. Edge cases exist where auto-import doesn't resolve correctly.
+
 ```ts
 // Wrong
-import { ref } from 'vue'
-import { Button } from '@/components/ui/button'
-import { useAuthManager } from '~/stores/auth-manager'
+import { ref } from "vue";
+import { Button } from "@/components/ui/button";
 
-// Correct
-const count = ref(0)
-const auth = useAuthManager()
+// Correct — explicit import for stores
+import { useAuthManager } from "~/stores/auth-manager";
+
+const count = ref(0);
+const auth = useAuthManager();
 // <Button /> works directly in template
 ```
 
@@ -45,6 +47,7 @@ app/components/ui/Card.vue          →  <Card /> (shadcn prefix is "")
 ## When to extract a component
 
 **Extract into a component when any of these are true:**
+
 - The template block is used in more than one place
 - A section has its own local state or logic
 - The template grows past ~80 lines
@@ -104,10 +107,10 @@ Anytime you write the same element more than twice, define the data as an array 
 
 <script setup lang="ts">
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/posts', label: 'Posts' },
-  { href: '/settings', label: 'Settings' },
-]
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/posts", label: "Posts" },
+  { href: "/settings", label: "Settings" },
+];
 </script>
 ```
 
@@ -119,19 +122,19 @@ This applies to: nav links, stat cards, tab lists, badge sets, feature lists, fo
 
 Before writing a custom component, check if shadcn-vue already has it.
 
-| Need | Use |
-|---|---|
-| Button | `<Button>` |
-| Modal/overlay | `<Dialog>` |
-| Dropdown | `<DropdownMenu>` |
-| Side panel | `<Sheet>` |
-| Notification | `createToast({ ... })()` via `vue-sonner` |
-| Table | `<Table>` + TanStack (see data-table skill) |
-| Form field | `<FormField>` + `<FormItem>` + `<FormMessage>` |
-| Loading | `<Skeleton>` |
-| Tooltip | `<Tooltip>` |
-| Tabs | `<Tabs>` |
-| Accordion | `<Accordion>` |
+| Need          | Use                                            |
+| ------------- | ---------------------------------------------- |
+| Button        | `<Button>`                                     |
+| Modal/overlay | `<Dialog>`                                     |
+| Dropdown      | `<DropdownMenu>`                               |
+| Side panel    | `<Sheet>`                                      |
+| Notification  | `createToast({ ... })()` via `vue-sonner`      |
+| Table         | `<Table>` + TanStack (see data-table skill)    |
+| Form field    | `<FormField>` + `<FormItem>` + `<FormMessage>` |
+| Loading       | `<Skeleton>`                                   |
+| Tooltip       | `<Tooltip>`                                    |
+| Tabs          | `<Tabs>`                                       |
+| Accordion     | `<Accordion>`                                  |
 
 ---
 
@@ -151,7 +154,32 @@ Create layouts in `app/layouts/`. Apply per-page with `definePageMeta`.
 
 ```ts
 // app/pages/dashboard/index.vue
-definePageMeta({ layout: 'dashboard' })
+definePageMeta({ layout: "dashboard" });
+```
+
+**Named templates and slots:**
+
+- Named templates (`<template #header>`, `<template #footer>`) should NOT be root nodes
+- If using named slot templates, wrap them in `<NuxtLayout>` component
+- For pages rendering inside a layout, use `definePageMeta({ layout: '---' })` instead of `<template #name>` slots (MUCH preferred approach)
+
+```vue
+<!-- Good — using definePageMeta -->
+<script setup lang="ts">
+definePageMeta({ layout: "dashboard" });
+</script>
+<template>
+  <div>Page content</div>
+</template>
+
+<!-- Also okay — explicit NuxtLayout wrapper for named slots -->
+<template>
+  <NuxtLayout name="dashboard">
+    <template #header>
+      <Header />
+    </template>
+  </NuxtLayout>
+</template>
 ```
 
 - Default layout (`default.vue`) applies when no layout is specified
@@ -176,23 +204,23 @@ Every feature gets a `*-manager.ts` Pinia store in `app/stores/`. The template i
 
 ```ts
 // app/stores/posts-manager.ts
-export const usePostsManager = defineStore('PostsManager', () => {
-  const auth = useAuthManager()
-  const config = useRuntimeConfig()
-  const posts = ref<Post[]>([])
+export const usePostsManager = defineStore("PostsManager", () => {
+  const auth = useAuthManager();
+  const config = useRuntimeConfig();
+  const posts = ref<Post[]>([]);
 
   const fetchPosts = async () => {
     const res = await auth.API(() =>
-      $fetch<{ data: Post[] }>('/api/posts', {
+      $fetch<{ data: Post[] }>("/api/posts", {
         baseURL: config.public.apiUrl as string,
         headers: { Authorization: `Bearer ${auth.token}` },
-      })
-    )
-    posts.value = res.data ?? []
-  }
+      }),
+    );
+    posts.value = res.data ?? [];
+  };
 
-  return { posts, fetchPosts }
-})
+  return { posts, fetchPosts };
+});
 ```
 
 See `skills/frontend/auth-manager.md` for the full pattern.
@@ -226,16 +254,20 @@ Always use VeeValidate + Zod. Never write manual validation or conditional error
 
 ```vue
 <script setup lang="ts">
-import { toTypedSchema } from '@vee-validate/zod'
-import { useForm } from 'vee-validate'
-import { z } from 'zod'
+import { toTypedSchema } from "@vee-validate/zod";
+import { useForm } from "vee-validate";
+import { z } from "zod";
 
-const schema = toTypedSchema(z.object({
-  email: z.string().email(),
-  name: z.string().min(2),
-}))
-const { handleSubmit, isSubmitting } = useForm({ validationSchema: schema })
-const onSubmit = handleSubmit(async (values) => { /* ... */ })
+const schema = toTypedSchema(
+  z.object({
+    email: z.string().email(),
+    name: z.string().min(2),
+  }),
+);
+const { handleSubmit, isSubmitting } = useForm({ validationSchema: schema });
+const onSubmit = handleSubmit(async (values) => {
+  /* ... */
+});
 </script>
 ```
 
@@ -247,6 +279,7 @@ When a form has more than 3 fields or is reused, extract it into a `*Form.vue` c
 ## Auth middleware
 
 The template includes `app/middleware/auth.ts` which:
+
 - Redirects unauthenticated users to `/auth/sign-in`
 - Redirects authenticated users away from `/auth/*`
 - Tries to refresh the PocketBase session on first protected-page load
@@ -261,13 +294,13 @@ To opt a route out, add it to `publicRoutes` in `middleware/auth.ts`.
 Use the `usePocketBase()` composable (singleton):
 
 ```ts
-const pb = usePocketBase()
+const pb = usePocketBase();
 
 // Direct collection access
-const posts = await pb.collection('posts').getFullList({ sort: '-created' })
+const posts = await pb.collection("posts").getFullList({ sort: "-created" });
 
 // Auth
-await pb.collection('users').authWithPassword(email, password)
+await pb.collection("users").authWithPassword(email, password);
 ```
 
 For Gin API calls use `$fetch` + `auth.API()` as shown above.
@@ -291,8 +324,8 @@ Use `v-motion` for entrance animations. Keep them subtle — one direction, shor
 Use `useColorMode()` — never hardcode `dark:` classes manually in new components.
 
 ```ts
-const colorMode = useColorMode()
-colorMode.preference = 'dark'
+const colorMode = useColorMode();
+colorMode.preference = "dark";
 ```
 
 ---
@@ -305,25 +338,30 @@ Toasts are managed by `useToastManagerStore` (`app/stores/toast-manager.ts`). Al
 
 ```ts
 // Immediate
-createToast({ message: 'Saved!', type: 'success' })()
+createToast({ message: "Saved!", type: "success" })();
 
 // As callback — no extra wrapper needed
-auth.signIn({ email, password, onSuccess: createToast({ message: 'Welcome back', type: 'success' }) })
+auth.signIn({
+  email,
+  password,
+  onSuccess: createToast({ message: "Welcome back", type: "success" }),
+});
 ```
 
 Full options (`ToastCreateParam`):
 
 ```ts
 createToast({
-  message: 'Post deleted',
-  type: 'error',           // 'success' | 'error' | 'info' | 'warning' | 'loading' | 'default'
+  message: "Post deleted",
+  type: "error", // 'success' | 'error' | 'info' | 'warning' | 'loading' | 'default'
   toastOps: {
-    description: 'Could not reach the server',
+    description: "Could not reach the server",
     duration: 5000,
-    position: 'bottom-right',
+    position: "bottom-right",
     action: {
-      label: 'Retry',
+      label: "Retry",
       onClick: () => retryFn(),
     },
   },
-})()
+})();
+```
